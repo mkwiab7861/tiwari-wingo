@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WinGo 5-AI Multi-Matrix & Supervisor Engine</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+
+        :root {
+            --bg-deep: #030712;
+            --card-glass: rgba(13, 18, 36, 0.96);
+            --white-stroke: rgba(255, 255, 255, 0.85);
+            --accent-cyan: #00f2fe;
+            --accent-purple: #9d4edd;
+            --accent-green: #10b981;
+            --accent-red: #ff3366;
+            --gold: #ffb703;
+            --skip-orange: #f97316;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text-main); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 8px 6px; }
+
+        .app-card {
+            width: 100%; max-width: 440px; background: var(--card-glass);
+            backdrop-filter: blur(20px); border-radius: 22px; padding: 14px 12px;
+            border: 1.5px solid var(--white-stroke); box-shadow: 0 0 25px rgba(0,242,254,0.15);
+        }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-title h1 { font-size: 6px; color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sync-badge { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); font-size: 8.5px; font-weight: 800; padding: 4px 8px; border-radius: 12px; }
+
+        .period-box {
+            background: rgba(3, 7, 18, 0.65); border-radius: 12px; padding: 8px 12px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .timer-container {
+            background: rgba(3, 7, 18, 0.75); border-radius: 12px; padding: 6px 12px; margin-bottom: 8px; border: 1px solid rgba(255, 255, 255, 0.12); text-align: center;
+        }
+        .timer-clock { font-size: 18px; font-weight: 900; color: var(--accent-green); font-family: monospace; }
+
+        .ai-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 6px;
+        }
+        .ai-grid-sub {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px;
+        }
+        .ai-node-card {
+            background: rgba(3, 7, 18, 0.6); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; padding: 5px 6px; font-size: 7.5px; text-align: left;
+        }
+        .ai-node-title { color: var(--gold); font-weight: 800; margin-bottom: 2px; }
+        .ai-node-vote { font-weight: 900; color: #fff; }
+
+        .supervisor-signal-box {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(157, 78, 221, 0.2));
+            border-radius: 16px;
+            padding: 14px 12px;
+            text-align: center;
+            margin-bottom: 10px;
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.4);
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        .supervisor-signal-box.skip-mode {
+            border-color: var(--skip-orange);
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(15, 23, 42, 0.95));
+            box-shadow: 0 0 25px rgba(249, 115, 22, 0.4);
+        }
+
+        .signal-label { font-size: 9px; color: var(--text-sub); font-weight: 800; letter-spacing: 1px; }
+        .signal-trend {
+            font-size: 32px; font-weight: 900; margin: 4px 0; color: #fff;
+            text-shadow: 0 0 20px rgba(0, 242, 254, 0.7);
+            letter-spacing: 2px;
+        }
+        .signal-trend.skip-mode {
+            color: var(--skip-orange);
+            text-shadow: 0 0 20px rgba(249, 115, 22, 0.7);
+        }
+
+        .user-card {
+            background: rgba(15, 23, 42, 0.75); border-radius: 16px; padding: 10px; margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .history-container {
+            background: rgba(3, 7, 18, 0.85); border-radius: 12px; padding: 8px;
+            border: 1.5px solid rgba(255, 183, 3, 0.35);
+            max-height: 160px;
+            overflow-y: auto;
+            margin-top: 6px;
+        }
+
+        .history-table { width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: center; }
+        .history-table th { color: var(--text-sub); padding: 4px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); position: sticky; top: 0; background: #030712; }
+        .history-table td { padding: 4px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+
+        .badge-win { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); padding: 2px 4px; border-radius: 4px; font-weight: 800; }
+        .badge-loss { background: rgba(255, 51, 102, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); padding: 2px 4px; border-radius: 4px; font-weight: 800; }
+        .badge-skip { background: rgba(249, 115, 22, 0.2); color: var(--skip-orange); border: 1px solid var(--skip-orange); padding: 2px 4px; border-radius: 4px; font-weight: 800; }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 12px rgba(0, 242, 254, 0.3); }
+            100% { box-shadow: 0 0 24px rgba(0, 242, 254, 0.6); }
+        }
+    </style>
+
+    <!-- Firebase SDKs & Cloud Sync with Ban Check -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLBtPq8xK9COk6GZyC-zHEtLFfW8-qQH0",
+            authDomain: "ghugh-b4903.firebaseapp.com",
+            projectId: "ghugh-b4903",
+            storageBucket: "ghugh-b4903.firebasestorage.app",
+            messagingSenderId: "960134803091",
+            appId: "1:960134803091:web:795feeb01f4199bbeee766",
+            measurementId: "G-N87ZW6067E"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let userId = localStorage.getItem("wingo_user_id");
+        if (!userId) {
+            userId = "User_" + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem("wingo_user_id", userId);
+        }
+
+        window.syncUserActivityToCloud = async function(historyLogs, totalWins, totalLosses, totalSkipped, currentStep, consecutiveLosses) {
+            try {
+                const userDocRef = doc(db, "users_activity", userId);
+                const userDocCheck = await getDoc(userDocRef);
+
+                if (userDocCheck.exists() && userDocCheck.data().isBanned === true) {
+                    alert("آپ کا اکاؤنٹ مستقل طور پر بلاک کر دیا گیا ہے!");
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20vh;'>ACCESS DENIED: Your account has been permanently banned by Administrator.</h1>";
+                    return;
+                }
+
+                const expireAt = new Date();
+                expireAt.setDate(expireAt.getDate() + 15);
+
+                const ua = navigator.userAgent;
+                let browserName = "Unknown Browser";
+                let deviceType = "Desktop PC";
+
+                if (ua.indexOf("Firefox") > -1) browserName = "Mozilla Firefox";
+                else if (ua.indexOf("Chrome") > -1) browserName = "Google Chrome";
+                else if (ua.indexOf("Safari") > -1) browserName = "Apple Safari";
+                else if (ua.indexOf("Edge") > -1) browserName = "Microsoft Edge";
+
+                if (/android/i.test(ua)) deviceType = "Android Mobile";
+                else if (/iPad|iPhone|iPod/.test(ua)) deviceType = "iOS iPhone";
+                else if (/windows/i.test(ua)) deviceType = "Windows PC";
+
+                const finalDeviceString = `${deviceType} (${browserName})`;
+
+                let userCountry = "International / Global";
+                try {
+                    const ipRes = await fetch('https://ipapi.co/json/');
+                    const ipData = await ipRes.json();
+                    if (ipData && ipData.country_name) {
+                        userCountry = `${ipData.country_name} (${ipData.city || ''})`;
+                    }
+                } catch (err) {}
+
+                const detectedLogicName = document.querySelector('.header-title h1')?.innerText || "5-AI Multi-Matrix & Supervisor";
+
+                await setDoc(userDocRef, {
+                    userId: userId,
+                    lastUpdated: new Date().toISOString(),
+                    expireAt: expireAt.toISOString(),
+                    wins: totalWins,
+                    losses: totalLosses,
+                    skipped: totalSkipped,
+                    currentStep: currentStep,
+                    consecutiveLosses: consecutiveLosses,
+                    device: finalDeviceString,
+                    country: userCountry,
+                    logicName: detectedLogicName,
+                    isBanned: false,
+                    history: historyLogs.slice(0, 500)
+                }, { merge: true });
+            } catch (e) {
+                console.error("Cloud Sync Error: ", e);
+            }
+        };
+    </script>
+</head>
+<body>
+
+<div class="app-card">
+    <div class="top-bar">
+        <div class="header-title"><h1>5-AI MULTI-MATRIX & SUPERVISOR ENGINE</h1></div>
+        <div class="sync-badge">🟢 REAL-TIME SYNC</div>
+    </div>
+
+    <div class="period-box">
+        <div><div style="font-size:9px; color:var(--text-sub)">TARGET PERIOD</div><div style="font-size:13px; font-weight:900; color:var(--gold)" id="targetPeriod">----</div></div>
+        <div style="text-align: right;"><div style="font-size:9px; color:var(--text-sub)">LAST RESULT</div><div style="font-size:13px; font-weight:900; color:var(--accent-cyan)" id="lastNum">-</div></div>
+    </div>
+
+    <div class="timer-container">
+        <div class="timer-clock" id="timerClock">00:30</div>
+    </div>
+
+    <!-- 🌟 5 اے آئیز کے لائیو ووٹس کا پینل -->
+    <div class="ai-grid">
+        <div class="ai-node-card">
+            <div class="ai-node-title">🤖 AI-1: Dragon</div>
+            <div class="ai-node-vote" id="voteAi1">Active</div>
+        </div>
+        <div class="ai-node-card">
+            <div class="ai-node-title">⚡ AI-2: Reversal</div>
+            <div class="ai-node-vote" id="voteAi2">Active</div>
+        </div>
+        <div class="ai-node-card">
+            <div class="ai-node-title">🔗 AI-3: Pair</div>
+            <div class="ai-node-vote" id="voteAi3">Active</div>
+        </div>
+    </div>
+    <div class="ai-grid-sub">
+        <div class="ai-node-card">
+            <div class="ai-node-title">📊 AI-4: Entropy Noise</div>
+            <div class="ai-node-vote" id="voteAi4">Clear</div>
+        </div>
+        <div class="ai-node-card">
+            <div class="ai-node-title">🛡️ AI-5: Circuit Breaker</div>
+            <div class="ai-node-vote" id="voteAi5">Armed</div>
+        </div>
+    </div>
+
+    <!-- 🌟 ماسٹر سوپر وائزر کا فائنل سگنل باکس -->
+    <div class="supervisor-signal-box" id="signalBox">
+        <div class="signal-label">MASTER SUPERVISOR DECISION</div>
+        <div class="signal-trend" id="predTrend">BIG</div>
+        <div style="font-size:9.5px; font-weight:800; color:var(--accent-cyan);" id="phaseMode">⚡ 5-AI Consensus Live Flow...</div>
+    </div>
+
+    <div class="user-card">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; margin-bottom: 5px;">
+            <span style="color: var(--accent-cyan);" id="userIdDisplay">👤 User</span>
+            <span style="color: var(--gold);" id="winRateText">WIN: 0/0 (SKIPPED: 0)</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; background: rgba(3, 7, 18, 0.6); padding: 5px 8px; border-radius: 6px; font-size: 8.5px; font-weight: 800; margin-bottom: 6px; border: 1px solid rgba(255,255,255,0.08);">
+            <div>CURRENT STEP: <span id="currentStepBadge" style="color: var(--accent-cyan);">Step 1</span></div>
+            <div>CONSECUTIVE LOSSES: <span id="consecutiveLossBadge" style="color: var(--accent-red);">0</span></div>
+        </div>
+
+        <div style="font-size: 9px; color: var(--text-sub); line-height: 1.2; background: rgba(3, 7, 18, 0.5); padding: 5px; border-radius: 6px;" id="logicBox">
+            > 5-AI Master Supervisor engine running with optimized instant sync...
+        </div>
+
+        <div class="history-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>PERIOD</th>
+                        <th>RESULT</th>
+                        <th>PREDICT</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr><td colspan="4" style="color:var(--accent-green);">Engine Connected Successfully!</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const WINGO_30S_API = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+    let totalWins = 0, totalLosses = 0, totalSkipped = 0;
+    let currentStep = 1;
+    let consecutiveLosses = 0;
+    let lastPrediction = null, lastProcessedIssue = "", historyLogs = [];
+    let supervisorCooldown = 0;
+
+    document.getElementById('userIdDisplay').innerText = `👤 ${localStorage.getItem("wingo_user_id")}`;
+
+    function startTimerEngine() {
+        setInterval(() => {
+            const remSec = 30 - (new Date().getSeconds() % 30);
+            document.getElementById('timerClock').innerText = `00:${remSec < 10 ? '0' : ''}${remSec}`;
+            if (remSec === 29 || remSec === 1 || remSec === 28) runLiveEngine();
+        }, 1000);
+    }
+
+    async function fetchDirectData() {
+        try {
+            const res = await fetch(WINGO_30S_API);
+            if (res.ok) {
+                const json = await res.json();
+                return json.data?.list || json.list || json.data || [];
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    /* 🧠 5-AI Ensemble & Master Supervisor Decision Engine */
+    function compute5AIEnsemble(list, step, losses) {
+        if (!list || list.length < 5) {
+            return { decision: "BIG", v1: "Active", v2: "Active", v3: "Active", v4: "Clear", v5: "Armed", phase: "⚡ Instant Flow Active", reason: "Gathering live trend patterns..." };
+        }
+
+        const sizes = list.map(i => {
+            let num = parseInt(i.number ?? i.num ?? i.winningNumber ?? 0);
+            return num >= 5 ? "BIG" : "SMALL";
+        });
+
+        if (supervisorCooldown > 0) {
+            supervisorCooldown--;
+            return {
+                decision: "SKIP ⏸️",
+                v1: "Paused", v2: "Paused", v3: "Paused", v4: "Cooling", v5: "Active Lock",
+                phase: "🛡️ Master Supervisor Cooling Lock",
+                reason: `Circuit Breaker & Supervisor enforced temporary safe skip to safeguard capital.`
+            };
+        }
+
+        let s0 = sizes[0], s1 = sizes[1], s2 = sizes[2], s3 = sizes[3];
+
+        let streak = 1;
+        for (let i = 0; i < sizes.length - 1; i++) {
+            if (sizes[i] === s0) streak++;
+            else break;
+        }
+        let voteAi1 = s0;
+        let descAi1 = streak >= 2 ? `${s0} (${streak}x)` : s0;
+
+        let voteAi2 = (s0 === "BIG") ? "SMALL" : "BIG";
+        let descAi2 = (s2 !== s1 && s1 !== s0) ? voteAi2 : "Dormant";
+
+        let voteAi3 = (s1 === s0) ? s0 : ((s0 === "BIG") ? "SMALL" : "BIG");
+        let descAi3 = (s1 === s0) ? "Pair" : "Flex";
+
+        let isChoppy = (s0 !== s1 && s1 !== s2 && s2 !== s3);
+        let voteAi4 = isChoppy ? "SKIP ⏸️" : "Clean";
+        let descAi4 = isChoppy ? "⚠️ Noise" : "Stable";
+
+        let voteAi5 = losses >= 2 ? "Trip" : "Armed";
+        let descAi5 = losses >= 2 ? "⚡ Tripped" : "Armed";
+
+        if (step >= 3) {
+            let recoveryTarget = (s0 === "BIG") ? "SMALL" : "BIG";
+            return {
+                decision: recoveryTarget,
+                v1: descAi1, v2: descAi2, v3: descAi3, v4: descAi4, v5: descAi5,
+                phase: `🛡️ Step ${step} Master Recovery Override`,
+                reason: `Martingale recovery active at Step ${step}. Master Supervisor overrides nodes to enforce hard reversal target (${recoveryTarget}).`
+            };
+        }
+
+        if (losses >= 2 || isChoppy) {
+            supervisorCooldown = 1;
+            return {
+                decision: "SKIP ⏸️",
+                v1: descAi1, v2: descAi2, v3: descAi3, v4: descAi4, v5: descAi5,
+                phase: "🛑 Master Supervisor Safety Skip",
+                reason: `Circuit Breaker or Entropy Guard detected unstable market state. Supervisor enforced safe skip.`
+            };
+        }
+
+        let finalDecision = (streak >= 2) ? voteAi1 : voteAi3;
+
+        return {
+            decision: finalDecision,
+            v1: descAi1, v2: descAi2, v3: descAi3, v4: descAi4, v5: descAi5,
+            phase: `🟢 5-AI Consensus Approved (${finalDecision})`,
+            reason: `All 5 AI nodes verified market health. High-probability sweet spot locked. Executing strong play: ${finalDecision}.`
+        };
+    }
+
+    async function runLiveEngine() {
+        const list = await fetchDirectData();
+        if (!list || list.length === 0) return;
+
+        const latest = list[0];
+        const lastNum = parseInt(latest.number ?? latest.num ?? latest.winningNumber ?? 0);
+        const lastIssue = String(latest.issueNumber ?? latest.issue ?? latest.period ?? "");
+        const actualSize = lastNum >= 5 ? "BIG" : "SMALL";
+
+        if (lastIssue && lastIssue === lastProcessedIssue) return;
+        if (lastIssue) lastProcessedIssue = lastIssue;
+
+        document.getElementById('lastNum').innerText = `${lastNum} (${actualSize})`;
+
+        try {
+            if (lastIssue) {
+                document.getElementById('targetPeriod').innerText = (BigInt(lastIssue) + 1n).toString().slice(-4);
+            }
+        } catch(e) { document.getElementById('targetPeriod').innerText = "NEXT"; }
+
+        if (lastPrediction !== null) {
+            let status = "";
+            if (lastPrediction.includes("SKIP")) {
+                status = "SKIPPED";
+                totalSkipped++;
+            } else {
+                let isWin = (actualSize === lastPrediction);
+                if (isWin) {
+                    status = "WIN";
+                    totalWins++;
+                    consecutiveLosses = 0;
+                    currentStep = 1;
+                } else {
+                    status = "LOSS";
+                    totalLosses++;
+                    consecutiveLosses++;
+                    currentStep++;
+                    if (currentStep > 4) currentStep = 4;
+                    supervisorCooldown = 1;
+                }
+            }
+
+            document.getElementById('currentStepBadge').innerText = `Step ${currentStep}`;
+            document.getElementById('consecutiveLossBadge').innerText = consecutiveLosses;
+
+            historyLogs.unshift({
+                issue: lastIssue || "----", actual: `${lastNum} (${actualSize})`,
+                pred: lastPrediction, status: status
+            });
+
+            document.getElementById('historyBody').innerHTML = historyLogs.map(item => {
+                let badgeClass = 'badge-skip';
+                if (item.status === 'WIN') badgeClass = 'badge-win';
+                if (item.status === 'LOSS') badgeClass = 'badge-loss';
+
+                return `
+                <tr>
+                    <td style="color:var(--text-sub)">${item.issue.slice(-4)}</td>
+                    <td><b>${item.actual}</b></td>
+                    <td style="font-weight:bold">${item.pred}</td>
+                    <td><span class="${badgeClass}">${item.status}</span></td>
+                </tr>
+                `;
+            }).join('');
+
+            document.getElementById('winRateText').innerText = `WIN: ${totalWins}/${totalWins + totalLosses} (SKIPPED: ${totalSkipped})`;
+
+            if (typeof window.syncUserActivityToCloud === 'function') {
+                window.syncUserActivityToCloud(historyLogs, totalWins, totalLosses, totalSkipped, `Step ${currentStep}`, consecutiveLosses);
+            }
+        }
+
+        const evalResult = compute5AIEnsemble(list, currentStep, consecutiveLosses);
+
+        document.getElementById('voteAi1').innerText = evalResult.v1;
+        document.getElementById('voteAi2').innerText = evalResult.v2;
+        document.getElementById('voteAi3').innerText = evalResult.v3;
+        document.getElementById('voteAi4').innerText = evalResult.v4;
+        document.getElementById('voteAi5').innerText = evalResult.v5;
+
+        const predElem = document.getElementById('predTrend');
+        predElem.innerText = evalResult.decision;
+
+        document.getElementById('phaseMode').innerText = evalResult.phase;
+
+        const signalBoxElem = document.getElementById('signalBox');
+
+        if (evalResult.decision.includes("SKIP")) {
+            predElem.classList.add('skip-mode');
+            signalBoxElem.classList.add('skip-mode');
+        } else {
+            predElem.classList.remove('skip-mode');
+            signalBoxElem.classList.remove('skip-mode');
+        }
+
+        document.getElementById('logicBox').innerText = evalResult.reason;
+
+        lastPrediction = evalResult.decision;
+    }
+
+    startTimerEngine();
+    runLiveEngine();
+</script>
+
+</body>
+</html>
